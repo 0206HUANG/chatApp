@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../data/models/user_model.dart';
-import '../../data/services/mock_data_service.dart';
+import '../../data/services/firebase_auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final FirebaseAuthService _authService = FirebaseAuthService();
   bool _isLoading = false;
   User? _currentUser;
   String? _error;
@@ -13,71 +15,24 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   AuthProvider() {
-    // 模拟自动登录，通常会从本地存储中检查登录状态
-    _currentUser = MockDataService.getUsers().first;
+    // Listen to Firebase authentication state changes
+    _authService.authStateChanges.listen((firebase_auth.User? firebaseUser) {
+      _currentUser = _authService.convertToAppUser(firebaseUser);
+      notifyListeners();
+    });
   }
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> signInWithGoogle() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // 模拟登录延迟
-      await Future.delayed(const Duration(seconds: 1));
-
-      // 在真实应用中，这里应该调用Firebase Auth或其他身份验证服务
-      // 但在这个模拟版本中，我们只检查用户名和密码是否不为空
-      if (username.isNotEmpty && password.isNotEmpty) {
-        _currentUser = MockDataService.getUsers().first;
-        _error = null;
-        notifyListeners();
-        return true;
-      } else {
-        _error = '请输入用户名和密码';
-        notifyListeners();
-        return false;
-      }
+      await _authService.signInWithGoogle();
+      _error = null;
+      return true;
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<bool> register(String username, String password, String name) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // 模拟注册延迟
-      await Future.delayed(const Duration(seconds: 1));
-
-      // 在真实应用中，这里应该调用Firebase Auth或其他身份验证服务
-      // 但在这个模拟版本中，我们只检查字段是否不为空
-      if (username.isNotEmpty && password.isNotEmpty && name.isNotEmpty) {
-        // 创建一个新用户
-        _currentUser = User(
-          id: 'user1',
-          name: name,
-          avatar: null,
-          isOnline: true,
-        );
-        _error = null;
-        notifyListeners();
-        return true;
-      } else {
-        _error = '请填写所有字段';
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
+      _error = _getErrorMessage(e);
       return false;
     } finally {
       _isLoading = false;
@@ -90,13 +45,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 模拟注销延迟
-      await Future.delayed(const Duration(seconds: 1));
-
-      _currentUser = null;
+      await _authService.signOut();
       _error = null;
     } catch (e) {
-      _error = e.toString();
+      _error = _getErrorMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -108,21 +60,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 模拟更新延迟
-      await Future.delayed(const Duration(seconds: 1));
+      final firebase_auth.User? firebaseUser = _authService.currentUser;
 
-      if (_currentUser != null) {
-        // 更新用户数据
-        _currentUser = User(
-          id: _currentUser!.id,
-          name: data['name'] ?? _currentUser!.name,
-          avatar: data['avatar'] ?? _currentUser!.avatar,
-          isOnline: _currentUser!.isOnline,
-          lastSeen: _currentUser!.lastSeen,
-        );
+      if (firebaseUser != null) {
+        if (data.containsKey('name')) {
+          await firebaseUser.updateDisplayName(data['name']);
+        }
+        if (data.containsKey('photoURL')) {
+          await firebaseUser.updatePhotoURL(data['photoURL']);
+        }
+
+        // Update local user data
+        _currentUser = _authService.convertToAppUser(firebaseUser);
       }
     } catch (e) {
-      _error = e.toString();
+      _error = _getErrorMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -132,5 +84,33 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  String _getErrorMessage(dynamic exception) {
+    if (exception is firebase_auth.FirebaseAuthException) {
+      switch (exception.code) {
+        case 'user-not-found':
+          return 'No user found with this email';
+        case 'wrong-password':
+          return 'Incorrect password';
+        case 'invalid-email':
+          return 'Invalid email format';
+        case 'user-disabled':
+          return 'This user has been disabled';
+        case 'email-already-in-use':
+          return 'This email is already registered';
+        case 'weak-password':
+          return 'Password is too weak';
+        case 'operation-not-allowed':
+          return 'This operation is not allowed';
+        case 'popup-closed-by-user':
+          return 'Sign-in popup was closed before completing the process';
+        case 'account-exists-with-different-credential':
+          return 'An account already exists with the same email address but different sign-in credentials';
+        default:
+          return 'Authentication failed: ${exception.message}';
+      }
+    }
+    return exception.toString();
   }
 }

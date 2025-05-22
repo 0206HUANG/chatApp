@@ -397,10 +397,15 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    _showEmojiPicker ? Icons.keyboard : Icons.emoji_emotions,
-                  ),
-                  onPressed: _toggleEmojiPicker,
+                  icon: const Icon(Icons.emoji_emotions),
+                  onPressed: () {
+                    // Temporarily removed emoji picker functionality
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Emoji picker is temporarily disabled'),
+                      ),
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo),
@@ -436,23 +441,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
-          // Emoji picker
-          if (_showEmojiPicker)
-            SizedBox(
-              height: 250,
-              child: EmojiPicker(
-                onEmojiSelected: _onEmojiSelected,
-                config: Config(
-                  columns: 7,
-                  emojiSizeMax: 32.0,
-                  verticalSpacing: 0,
-                  horizontalSpacing: 0,
-                  initCategory: Category.RECENT,
-                  bgColor: Theme.of(context).scaffoldBackgroundColor,
-                  indicatorColor: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
         ],
       ),
     );
