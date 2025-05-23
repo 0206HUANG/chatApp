@@ -28,13 +28,34 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Google Sign-in Client ID -->
-  <meta name="google-signin-client_id" content="86982231047-iosapp.apps.googleusercontent.com">
+  <meta name="google-signin-client_id"
+    content="86982231047-k96n9end3040t2k105jb7ts9p0f63c28.apps.googleusercontent.com">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>chat</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase Core -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+  <script>
+    // Initialize Firebase
+    var firebaseConfig = {
+      apiKey: "AIzaSyDjyLbU5AWAEGqjOxK1f9AojrAS9U-zCDc",
+      authDomain: "chatapp-a2992.firebaseapp.com",
+      projectId: "chatapp-a2992",
+      storageBucket: "chatapp-a2992.firebasestorage.app",
+      messagingSenderId: "86982231047",
+      appId: "1:86982231047:web:76b638a314d6311a7ed6a2",
+      measurementId: "G-5C7J7LBB31"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
 </head>
 
 <body>

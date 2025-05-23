@@ -8,7 +8,8 @@ class FirebaseAuthService {
   final GoogleSignIn _googleSignIn =
       kIsWeb
           ? GoogleSignIn(
-            clientId: '86982231047-iosapp.apps.googleusercontent.com',
+            clientId:
+                '86982231047-k96n9end3040t2k105jb7ts9p0f63c28.apps.googleusercontent.com',
           )
           : GoogleSignIn();
 
