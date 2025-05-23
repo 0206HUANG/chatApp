@@ -167,7 +167,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Navigate to call screen
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CallScreen()),
+      MaterialPageRoute(
+        builder: (context) => CallScreen(chatRoomId: widget.chatRoom.id),
+      ),
     );
   }
 

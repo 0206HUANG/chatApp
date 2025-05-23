@@ -30,13 +30,13 @@ class CallProvider extends ChangeNotifier {
 
   Future<void> _initialize() async {
     try {
-      // 监听呼叫事件
+      // Listen for call events
       _callEventSubscription = _callService.callEventStream.listen((event) {
-        // 处理呼叫事件
+        // Handle call events
         notifyListeners();
       });
 
-      // 监听呼叫状态
+      // Listen for call status
       _callStateSubscription = _callService.callStateStream.listen((state) {
         _isInCall = state.isInCall;
         _isVideoEnabled = state.isVideoEnabled;
@@ -50,7 +50,7 @@ class CallProvider extends ChangeNotifier {
     }
   }
 
-  // 发起通话
+  // Start call
   Future<void> startCall({
     required String channelId,
     required List<String> participants,
@@ -73,27 +73,27 @@ class CallProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 切换静音状态
+  // Toggle mute status
   Future<void> toggleMute() async {
     _isMuted = !_isMuted;
     await _callService.toggleMute(_isMuted);
     notifyListeners();
   }
 
-  // 切换扬声器状态
+  // Toggle speaker status
   Future<void> toggleSpeaker() async {
     _isSpeakerOn = !_isSpeakerOn;
     await _callService.toggleSpeaker(_isSpeakerOn);
     notifyListeners();
   }
 
-  // 切换摄像头
+  // Switch camera
   Future<void> switchCamera() async {
     await _callService.switchCamera();
     notifyListeners();
   }
 
-  // 结束通话
+  // End call
   Future<void> endCall() async {
     await _callService.endCall();
     notifyListeners();

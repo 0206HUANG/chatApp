@@ -3,43 +3,44 @@ import '../models/message_model.dart';
 import 'mock_data_service.dart';
 
 class MessageService {
-  // 初始化服务
+  // Initialize service
   Future<void> init() async {
-    // 在实际应用中，这里会初始化数据库或其他存储
-    await Future.delayed(const Duration(milliseconds: 500));
+    // In a real app, this would initialize database or other storage
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
-  // 获取某个聊天室的消息
+  // Get messages for a chat room
   Future<List<Message>> getMessages(String chatRoomId) async {
-    // 在实际应用中，这里会从数据库或API获取消息
-    await Future.delayed(const Duration(seconds: 1));
+    // In a real app, this would get messages from database or API
+    await Future.delayed(const Duration(milliseconds: 500));
+
     return MockDataService.getMessages()[chatRoomId] ?? [];
   }
 
-  // 保存消息
+  // Save message
   Future<void> saveMessage(Message message) async {
-    // 在实际应用中，这里会将消息保存到数据库或通过API发送
+    // In a real app, this would save message to database or send via API
     await Future.delayed(const Duration(milliseconds: 100));
   }
 
-  // 将消息标记为已删除
+  // Mark message as deleted
   Future<void> markMessageDeleted(String messageId, bool forEveryone) async {
-    // 在实际应用中，这里会更新消息在数据库中的状态
+    // In a real app, this would update message status in database
     await Future.delayed(const Duration(milliseconds: 100));
   }
 
-  // 上传媒体文件
+  // Upload media file
   Future<String> uploadMedia(File file, MessageType type) async {
-    // 模拟上传延迟
+    // Simulate upload delay
     await Future.delayed(const Duration(seconds: 2));
 
-    // 在实际应用中，这里会上传文件到存储服务并返回URL
-    // 这里我们返回一个模拟URL
-    return 'https://via.placeholder.com/300';
+    // In a real app, this would upload file to storage service and return URL
+    // Here we return a mock URL
+    return 'https://example.com/media/${file.path.split('/').last}';
   }
 
-  // 释放资源
+  // Release resources
   void dispose() {
-    // 在实际应用中，这里会关闭数据库连接或其他资源
+    // In a real app, this would close database connections or other resources
   }
 }

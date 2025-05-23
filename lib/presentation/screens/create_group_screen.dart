@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/models/user_model.dart';
+import '../../data/models/chat_room_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
-import '../../data/services/mock_data_service.dart';
 import 'chat_screen.dart';
 
 class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({Key? key}) : super(key: key);
+  final List<User> users;
+
+  const CreateGroupScreen({Key? key, required this.users}) : super(key: key);
 
   @override
   State<CreateGroupScreen> createState() => _CreateGroupScreenState();
@@ -13,49 +17,43 @@ class CreateGroupScreen extends StatefulWidget {
 
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final List<String> _selectedUserIds = [];
-  String get _currentUserId => MockDataService.getUsers().first.id;
+  final Set<String> _selectedUserIds = {};
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  // 创建群聊
+  // Create group chat
   Future<void> _createGroup() async {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('请输入群组名称')));
+      ).showSnackBar(const SnackBar(content: Text('Please enter group name')));
       return;
     }
 
     if (_selectedUserIds.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请至少选择一个联系人')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one contact')),
+      );
       return;
     }
 
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-    final navigator = Navigator.of(context);
+    final currentUser =
+        Provider.of<AuthProvider>(context, listen: false).currentUser!;
 
-    // 创建群聊
-    final chatRoom = await chatProvider.createGroup(_nameController.text, [
-      ..._selectedUserIds,
-      _currentUserId,
-    ]);
+    // Create group chat
+    final chatRoom = await chatProvider.createGroup(
+      _nameController.text.trim(),
+      [..._selectedUserIds.toList(), currentUser.id],
+    );
 
-    // 创建成功，跳转到聊天页面
-    if (chatRoom != null) {
-      navigator.pushReplacement(
+    // Navigate to chat page on successful creation
+    if (mounted && chatRoom != null) {
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => ChatScreen(chatRoom: chatRoom)),
       );
     }
   }
 
-  // 选择/取消选择用户
+  // Select/deselect user
   void _toggleUserSelection(String userId) {
     setState(() {
       if (_selectedUserIds.contains(userId)) {
@@ -68,71 +66,62 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chatProvider = Provider.of<ChatProvider>(context);
-    // 过滤掉当前用户
-    final users =
-        chatProvider.users.values
-            .where((user) => user.id != _currentUserId)
-            .toList();
+    final currentUser = Provider.of<AuthProvider>(context).currentUser;
+
+    // Filter out current user
+    final availableUsers =
+        widget.users.where((user) => user.id != currentUser?.id).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('创建群聊'),
-        actions: [TextButton(onPressed: _createGroup, child: const Text('创建'))],
+        title: const Text('Create Group'),
+        actions: [
+          TextButton(onPressed: _createGroup, child: const Text('Create')),
+        ],
       ),
       body: Column(
         children: [
-          // 群名称输入框
+          // Group name input field
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: '群组名称',
-                prefixIcon: Icon(Icons.group),
+                labelText: 'Group Name',
                 border: OutlineInputBorder(),
               ),
             ),
           ),
-          // 已选择用户数量
+          // Number of selected users
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                const Icon(Icons.person_add),
-                const SizedBox(width: 8),
-                Text(
-                  '选择联系人 (${_selectedUserIds.length})',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Select Contacts (${_selectedUserIds.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
           ),
           const Divider(),
-          // 联系人列表
+          // Contact list
           Expanded(
             child: ListView.builder(
-              itemCount: users.length,
+              itemCount: availableUsers.length,
               itemBuilder: (context, index) {
-                final user = users[index];
+                final user = availableUsers[index];
                 final isSelected = _selectedUserIds.contains(user.id);
 
-                return ListTile(
-                  leading: CircleAvatar(
+                return CheckboxListTile(
+                  value: isSelected,
+                  onChanged: (_) => _toggleUserSelection(user.id),
+                  title: Text(user.name),
+                  subtitle: Text(user.isOnline ? 'Online' : 'Offline'),
+                  secondary: CircleAvatar(
                     backgroundImage:
                         user.avatar != null ? NetworkImage(user.avatar!) : null,
                     child: user.avatar == null ? Text(user.name[0]) : null,
                   ),
-                  title: Text(user.name),
-                  subtitle: Text(user.isOnline ? '在线' : '离线'),
-                  trailing:
-                      isSelected
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : null,
-                  onTap: () => _toggleUserSelection(user.id),
                 );
               },
             ),
@@ -140,5 +129,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

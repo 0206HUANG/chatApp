@@ -44,35 +44,35 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 初始化聊天服务
+  // Initialize chat service
   void initChatService(String userId) {
     _chatService.init(userId);
 
-    // 监听来自服务器的消息更新
+    // Listen for message updates from server
     _messageSubscription = _chatService.messageStream.listen((message) {
       handleNewMessage(message);
     });
 
-    // 监听用户状态变化
+    // Listen for user status changes
     _userStatusSubscription = _chatService.userStatusStream.listen((user) {
       _users[user.id] = user;
       notifyListeners();
     });
 
-    // 监听聊天室更新
+    // Listen for chat room updates
     _chatRoomSubscription = _chatService.chatRoomStream.listen((chatRoom) {
       updateChatRoom(chatRoom);
     });
   }
 
-  // 内部处理新消息的方法，与公开方法功能相同
+  // Internal method to handle new messages, same functionality as public method
   void _handleNewMessage(Message message) {
     handleNewMessage(message);
   }
 
-  // 处理新消息
+  // Handle new message
   void handleNewMessage(Message message) {
-    // 更新本地消息列表
+    // Update local message list
     if (_messages.containsKey(message.chatRoomId)) {
       final List<Message> roomMessages = _messages[message.chatRoomId]!;
       final int existingIndex = roomMessages.indexWhere(
@@ -80,22 +80,22 @@ class ChatProvider extends ChangeNotifier {
       );
 
       if (existingIndex >= 0) {
-        // 如果消息已存在，则更新它
+        // If message already exists, update it
         roomMessages[existingIndex] = message;
       } else {
-        // 否则添加新消息
+        // Otherwise add new message
         roomMessages.add(message);
         roomMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       }
     } else {
-      // 如果这个聊天室的消息列表还不存在，则创建一个
+      // If message list for this chat room doesn't exist, create one
       _messages[message.chatRoomId!] = [message];
     }
 
-    // 保存消息到本地数据库
+    // Save message to local database
     _messageService.saveMessage(message);
 
-    // 如果这个消息不是当前用户发送的，标记已送达
+    // If this message is not sent by current user, mark as delivered
     if (message.senderId != _users.keys.first &&
         message.status == MessageStatus.sent) {
       _chatService.updateMessageStatus(message.id, MessageStatus.delivered);
@@ -104,12 +104,12 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 内部更新聊天室的方法，与公开方法功能相同
+  // Internal method to update chat room, same functionality as public method
   void _updateChatRoom(ChatRoom chatRoom) {
     updateChatRoom(chatRoom);
   }
 
-  // 更新聊天室信息
+  // Update chat room information
   void updateChatRoom(ChatRoom chatRoom) {
     final int index = _chatRooms.indexWhere((room) => room.id == chatRoom.id);
 
@@ -119,19 +119,21 @@ class ChatProvider extends ChangeNotifier {
       _chatRooms.add(chatRoom);
     }
 
-    // 按最近消息排序
+    // Sort by latest message
     _chatRooms.sort((a, b) {
       if (a.lastMessageId == null) return 1;
       if (b.lastMessageId == null) return -1;
 
       final DateTime timeA =
           _messages[a.id]
-              ?.firstWhere((m) => m.id == a.lastMessageId)
+              ?.where((m) => m.id == a.lastMessageId)
+              .firstOrNull
               ?.timestamp ??
           DateTime(0);
       final DateTime timeB =
           _messages[b.id]
-              ?.firstWhere((m) => m.id == b.lastMessageId)
+              ?.where((m) => m.id == b.lastMessageId)
+              .firstOrNull
               ?.timestamp ??
           DateTime(0);
 
@@ -141,15 +143,15 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 加载聊天室列表
+  // Load chat room list
   Future<void> loadChatRooms() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // 这里应该是从API加载聊天室列表，但由于没有实际后端，先使用模拟数据
-      // TODO: 实现真实API调用
+      // This should load chat room list from API, but since there's no actual backend, use mock data
+      // TODO: Implement real API call
       await Future.delayed(const Duration(seconds: 1));
 
       _chatRooms = [];
@@ -162,7 +164,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 加载特定聊天室的消息
+  // Load messages for specific chat room
   Future<void> loadMessages(String chatRoomId) async {
     _isLoading = true;
     _currentChatRoomId = chatRoomId;
@@ -172,7 +174,7 @@ class ChatProvider extends ChangeNotifier {
       final messages = await _messageService.getMessages(chatRoomId);
       _messages[chatRoomId] = messages;
 
-      // 将所有接收到的未读消息标记为已读
+      // Mark all received unread messages as read
       for (final message in messages) {
         if (message.status == MessageStatus.delivered &&
             message.senderId != _users.keys.first) {
@@ -189,7 +191,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 发送消息
+  // Send message
   Future<void> sendMessage({
     required String content,
     required String chatRoomId,
@@ -199,7 +201,7 @@ class ChatProvider extends ChangeNotifier {
   }) async {
     final String currentUserId = _users.keys.first;
 
-    // 创建新消息
+    // Create new message
     final message = Message(
       id: _uuid.v4(),
       senderId: currentUserId,
@@ -212,14 +214,14 @@ class ChatProvider extends ChangeNotifier {
       metadata: metadata,
     );
 
-    // 先在本地添加消息
+    // Add message locally first
     handleNewMessage(message);
 
-    // 发送消息到服务器
+    // Send message to server
     _chatService.sendMessage(message);
   }
 
-  // 发送图片消息
+  // Send image message
   Future<void> sendImage(
     File image,
     String chatRoomId,
@@ -229,13 +231,13 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 上传图片
+      // Upload image
       final String url = await _messageService.uploadMedia(
         image,
         MessageType.image,
       );
 
-      // 发送消息
+      // Send message
       await sendMessage(
         content: url,
         chatRoomId: chatRoomId,
@@ -252,12 +254,12 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 撤回消息
+  // Recall message
   Future<void> recallMessage(String messageId, bool forEveryone) async {
     _chatService.recallMessage(messageId, forEveryone);
     await _messageService.markMessageDeleted(messageId, forEveryone);
 
-    // 更新本地消息列表
+    // Update local message list
     for (final chatRoomId in _messages.keys) {
       final List<Message> roomMessages = _messages[chatRoomId]!;
       final int index = roomMessages.indexWhere((m) => m.id == messageId);
@@ -273,7 +275,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 创建群聊
+  // Create group chat
   Future<ChatRoom?> createGroup(String name, List<String> memberIds) async {
     _isLoading = true;
     notifyListeners();
@@ -281,7 +283,7 @@ class ChatProvider extends ChangeNotifier {
     try {
       final String currentUserId = _users.keys.first;
 
-      // 确保创建者也在成员列表中
+      // Ensure creator is also in member list
       if (!memberIds.contains(currentUserId)) {
         memberIds.add(currentUserId);
       }
@@ -310,33 +312,33 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 添加用户到群组
+  // Add users to group
   void inviteToGroup(String chatRoomId, List<String> userIds) {
     _chatService.inviteToGroup(chatRoomId, userIds);
   }
 
-  // 从群组移除用户
+  // Remove user from group
   void removeFromGroup(String chatRoomId, String userId) {
     _chatService.removeFromGroup(chatRoomId, userId);
   }
 
-  // 设置群管理员
+  // Set group admin
   void setGroupAdmin(String chatRoomId, String userId, bool isAdmin) {
     _chatService.setGroupAdmin(chatRoomId, userId, isAdmin);
   }
 
-  // 更新群公告
+  // Update group announcement
   void updateGroupAnnouncement(String chatRoomId, String announcement) {
     _chatService.updateGroupAnnouncement(chatRoomId, announcement);
   }
 
-  // 更新用户
+  // Update user
   void updateUser(User user) {
     _users[user.id] = user;
     notifyListeners();
   }
 
-  // 清除错误
+  // Clear error
   void clearError() {
     _error = null;
     notifyListeners();

@@ -73,10 +73,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
               title: const Text('New Group Chat'),
               onTap: () {
                 Navigator.pop(context);
+                final chatProvider = Provider.of<ChatProvider>(
+                  context,
+                  listen: false,
+                );
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CreateGroupScreen(),
+                    builder:
+                        (context) => CreateGroupScreen(
+                          users: chatProvider.users.values.toList(),
+                        ),
                   ),
                 );
               },

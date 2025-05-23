@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/call_provider.dart';
 
 class CallScreen extends StatefulWidget {
-  const CallScreen({Key? key}) : super(key: key);
+  final String chatRoomId;
+
+  const CallScreen({Key? key, required this.chatRoomId}) : super(key: key);
 
   @override
   State<CallScreen> createState() => _CallScreenState();
@@ -11,126 +13,141 @@ class CallScreen extends StatefulWidget {
 
 class _CallScreenState extends State<CallScreen> {
   @override
+  void initState() {
+    super.initState();
+    // If call ended, go back to previous page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final callProvider = Provider.of<CallProvider>(context, listen: false);
+      if (!callProvider.isInCall) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final callProvider = Provider.of<CallProvider>(context);
-
-    // 如果通话结束，返回上一页
-    if (!callProvider.isInCall) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop();
-      });
-    }
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Stack(
           children: [
-            // 视频区域
-            if (callProvider.isVideoEnabled)
-              Center(
-                child: Container(
-                  color: Colors.grey[900],
-                  child: const Center(
-                    child: Text(
-                      '视频通话区域',
-                      style: TextStyle(color: Colors.white),
-                    ),
+            // Video area
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(color: Colors.grey),
+                child: const Center(
+                  child: Text(
+                    'Video Call Area',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ),
-              )
-            else
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.account_circle,
-                      size: 100,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      callProvider.currentParticipants?.isNotEmpty ?? false
-                          ? '与 ${callProvider.currentParticipants!.length} 人的语音通话'
-                          : '语音通话',
-                      style: const TextStyle(color: Colors.white, fontSize: 24),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '正在通话中...',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-            // 控制区域
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 40,
-              child: Column(
-                children: [
-                  // 通话时长
-                  const Text('00:42', style: TextStyle(color: Colors.white)),
-                  const SizedBox(height: 20),
-                  // 控制按钮行
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // 静音按钮
-                      FloatingActionButton(
-                        heroTag: 'mute',
-                        backgroundColor:
-                            callProvider.isMuted ? Colors.red : Colors.white30,
-                        onPressed: callProvider.toggleMute,
-                        child: Icon(
-                          callProvider.isMuted ? Icons.mic_off : Icons.mic,
-                          color: Colors.white,
-                        ),
-                      ),
-                      // 结束通话按钮
-                      FloatingActionButton(
-                        heroTag: 'end',
-                        backgroundColor: Colors.red,
-                        onPressed: callProvider.endCall,
-                        child: const Icon(Icons.call_end),
-                      ),
-                      // 扬声器按钮
-                      FloatingActionButton(
-                        heroTag: 'speaker',
-                        backgroundColor:
-                            callProvider.isSpeakerOn
-                                ? Colors.white
-                                : Colors.white30,
-                        onPressed: callProvider.toggleSpeaker,
-                        child: Icon(
-                          callProvider.isSpeakerOn
-                              ? Icons.volume_up
-                              : Icons.volume_down,
-                          color:
-                              callProvider.isSpeakerOn
-                                  ? Colors.black
-                                  : Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (callProvider.isVideoEnabled) ...[
-                    const SizedBox(height: 16),
-                    // 切换摄像头按钮
-                    FloatingActionButton(
-                      heroTag: 'camera',
-                      mini: true,
-                      backgroundColor: Colors.white30,
-                      onPressed: callProvider.switchCamera,
-                      child: const Icon(Icons.flip_camera_ios),
-                    ),
-                  ],
-                ],
               ),
             ),
-            // 返回按钮
+            // Call information area
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      callProvider.isVideoEnabled
+                          ? 'Video call with ${callProvider.currentParticipants!.length} people'
+                          : 'Voice Call',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'In call...',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    // Control area
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Call duration
+                        const SizedBox(width: 48),
+                        // Control button row
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Mute button
+                              IconButton(
+                                onPressed: () {
+                                  callProvider.toggleMute();
+                                },
+                                icon: Icon(
+                                  callProvider.isMuted
+                                      ? Icons.mic_off
+                                      : Icons.mic,
+                                  color:
+                                      callProvider.isMuted
+                                          ? Colors.red
+                                          : Colors.white,
+                                ),
+                                iconSize: 32,
+                              ),
+                              // End call button
+                              IconButton(
+                                onPressed: () {
+                                  callProvider.endCall();
+                                  Navigator.of(context).pop();
+                                },
+                                icon: const Icon(
+                                  Icons.call_end,
+                                  color: Colors.red,
+                                ),
+                                iconSize: 48,
+                              ),
+                              // Speaker button
+                              IconButton(
+                                onPressed: () {
+                                  callProvider.toggleSpeaker();
+                                },
+                                icon: Icon(
+                                  callProvider.isSpeakerOn
+                                      ? Icons.volume_up
+                                      : Icons.volume_down,
+                                  color: Colors.white,
+                                ),
+                                iconSize: 32,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Switch camera button
+                        if (callProvider.isVideoEnabled)
+                          IconButton(
+                            onPressed: () {
+                              callProvider.switchCamera();
+                            },
+                            icon: const Icon(
+                              Icons.cameraswitch,
+                              color: Colors.white,
+                            ),
+                            iconSize: 32,
+                          )
+                        else
+                          const SizedBox(width: 48),
+                        // Back button
+                        const SizedBox(width: 48),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Back button
             Positioned(
               top: 10,
               left: 10,

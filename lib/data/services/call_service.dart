@@ -14,74 +14,74 @@ class CallState {
   });
 }
 
-enum CallEvent { incoming, accepted, rejected, ended, missedCall }
+class CallEvent {
+  final String type;
+  final Map<String, dynamic> data;
+
+  CallEvent({required this.type, required this.data});
+}
 
 class CallService {
-  final StreamController<CallEvent> _callEventStreamController =
-      StreamController<CallEvent>.broadcast();
-  final StreamController<CallState> _callStateStreamController =
-      StreamController<CallState>.broadcast();
+  final _callEventController = StreamController<CallEvent>.broadcast();
+  final _callStateController = StreamController<CallState>.broadcast();
 
-  Stream<CallEvent> get callEventStream => _callEventStreamController.stream;
-  Stream<CallState> get callStateStream => _callStateStreamController.stream;
-
-  CallState _currentState = CallState(isInCall: false, isVideoEnabled: false);
-
-  // 发起通话
+  // Initiate call
   Future<void> startCall({
     required String channelId,
     required List<String> participants,
     required bool isVideo,
   }) async {
-    // 在真实应用中，这里会调用API发起通话请求
-    await Future.delayed(const Duration(seconds: 1));
-
-    // 模拟对方接受通话
-    _callEventStreamController.add(CallEvent.accepted);
-
-    // 更新通话状态
-    _currentState = CallState(
-      isInCall: true,
-      isVideoEnabled: isVideo,
-      channelId: channelId,
-      participants: participants,
-    );
-    _callStateStreamController.add(_currentState);
-  }
-
-  // 切换静音状态
-  Future<void> toggleMute(bool isMuted) async {
-    // 在真实应用中，这里会调用SDK设置麦克风状态
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
-
-  // 切换扬声器状态
-  Future<void> toggleSpeaker(bool isSpeakerOn) async {
-    // 在真实应用中，这里会调用SDK设置扬声器状态
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
-
-  // 切换摄像头
-  Future<void> switchCamera() async {
-    // 在真实应用中，这里会调用SDK切换前后摄像头
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
-
-  // 结束通话
-  Future<void> endCall() async {
-    // 在真实应用中，这里会调用API结束通话
+    // In a real app, this would call API to initiate call request
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // 发送通话结束事件
-    _callEventStreamController.add(CallEvent.ended);
+    // Simulate the other party accepting the call
+    await Future.delayed(const Duration(seconds: 1));
 
-    // 更新通话状态
-    _currentState = CallState(isInCall: false, isVideoEnabled: false);
-    _callStateStreamController.add(_currentState);
+    // Update call status
+    _callStateController.add(
+      CallState(
+        isInCall: true,
+        isVideoEnabled: isVideo,
+        channelId: channelId,
+        participants: participants,
+      ),
+    );
   }
 
+  // Toggle mute status
+  Future<void> toggleMute(bool isMuted) async {
+    // In a real app, this would call SDK to set microphone status
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  // Toggle speaker status
+  Future<void> toggleSpeaker(bool isSpeakerOn) async {
+    // In a real app, this would call SDK to set speaker status
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  // Switch camera
+  Future<void> switchCamera() async {
+    // In a real app, this would call SDK to switch front/back camera
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  // End call
+  Future<void> endCall() async {
+    // In a real app, this would call API to end call
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    _callStateController.add(CallState(isInCall: false, isVideoEnabled: false));
+  }
+
+  // Get call event stream
+  Stream<CallEvent> get callEventStream => _callEventController.stream;
+
+  // Get call state stream
+  Stream<CallState> get callStateStream => _callStateController.stream;
+
   void dispose() {
-    _callEventStreamController.close();
-    _callStateStreamController.close();
+    _callEventController.close();
+    _callStateController.close();
   }
 }

@@ -4,132 +4,150 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:3000'; // 替换为你的实际后端地址
-  static const String tokenKey = 'auth_token';
-  static const String userKey = 'current_user';
-
-  // 单例模式
-  static final AuthService _instance = AuthService._internal();
-
-  factory AuthService() {
-    return _instance;
-  }
+  static const String baseUrl =
+      'http://localhost:3000'; // Replace with your actual backend address
 
   AuthService._internal();
+  static final AuthService _instance = AuthService._internal();
+  // Singleton pattern
+  factory AuthService() => _instance;
 
-  // 登录
-  Future<User> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
+  String? _token;
+  User? _currentUser;
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final String token = data['token'];
-      final User user = User.fromJson(data['user']);
+  // Login
+  Future<User?> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
 
-      // 保存令牌和用户信息
-      await _saveToken(token);
-      await _saveUser(user);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _token = data['token'];
+        _currentUser = User.fromJson(data['user']);
 
-      return user;
-    } else {
-      throw Exception('登录失败: ${response.body}');
+        // Save token and user info
+        await _saveToken(_token!);
+        await _saveUser(_currentUser!);
+
+        return _currentUser;
+      } else {
+        throw Exception('Login failed: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Login failed: $e');
     }
   }
 
-  // 注册
-  Future<User> register(String username, String password, String name) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username,
-        'password': password,
-        'name': name,
-      }),
-    );
+  // Register
+  Future<User?> register(String name, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      );
 
-    if (response.statusCode == 201) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final String token = data['token'];
-      final User user = User.fromJson(data['user']);
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        _token = data['token'];
+        _currentUser = User.fromJson(data['user']);
 
-      // 保存令牌和用户信息
-      await _saveToken(token);
-      await _saveUser(user);
+        // Save token and user info
+        await _saveToken(_token!);
+        await _saveUser(_currentUser!);
 
-      return user;
-    } else {
-      throw Exception('注册失败: ${response.body}');
+        return _currentUser;
+      } else {
+        throw Exception('Registration failed: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Registration failed: $e');
     }
   }
 
-  // 注销
+  // Logout
   Future<void> logout() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove(tokenKey);
-    await prefs.remove(userKey);
+    _token = null;
+    _currentUser = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('current_user');
   }
 
-  // 检查用户是否已登录
+  // Check if user is logged in
   Future<bool> isLoggedIn() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString(tokenKey);
-    return token != null;
+    if (_token != null) return true;
+
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+
+    return _token != null;
   }
 
-  // 获取当前用户
+  // Get current user
   Future<User?> getCurrentUser() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? userJson = prefs.getString(userKey);
+    if (_currentUser != null) return _currentUser;
+
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString('current_user');
 
     if (userJson != null) {
-      return User.fromJson(jsonDecode(userJson));
+      _currentUser = User.fromJson(jsonDecode(userJson));
     }
 
-    return null;
+    return _currentUser;
   }
 
-  // 获取认证令牌
+  // Get auth token
   Future<String?> getToken() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString(tokenKey);
+    if (_token != null) return _token;
+
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+
+    return _token;
   }
 
-  // 更新用户信息
-  Future<User> updateProfile(String userId, Map<String, dynamic> data) async {
-    final String? token = await getToken();
+  // Update user info
+  Future<User?> updateUser(Map<String, dynamic> updates) async {
+    if (_token == null) return null;
 
-    final response = await http.put(
-      Uri.parse('$baseUrl/users/$userId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(data),
-    );
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/auth/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode(updates),
+      );
 
-    if (response.statusCode == 200) {
-      final User updatedUser = User.fromJson(jsonDecode(response.body));
-      await _saveUser(updatedUser);
-      return updatedUser;
-    } else {
-      throw Exception('更新用户信息失败: ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = User.fromJson(data);
+        await _saveUser(_currentUser!);
+        return _currentUser;
+      } else {
+        throw Exception('User update failed: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('User update failed: $e');
     }
   }
 
-  // 保存令牌到本地存储
+  // Save token to local storage
   Future<void> _saveToken(String token) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(tokenKey, token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
   }
 
-  // 保存用户信息到本地存储
+  // Save user info to local storage
   Future<void> _saveUser(User user) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(userKey, jsonEncode(user.toJson()));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('current_user', jsonEncode(user.toJson()));
   }
 }

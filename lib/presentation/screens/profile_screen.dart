@@ -30,7 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // 退出登录
+  // Logout
   Future<void> _logout() async {
     final navigator = Navigator.of(context);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 更新用户资料
+  // Update user profile
   Future<void> _updateProfile() async {
     if (_nameController.text.trim().isEmpty) return;
 
@@ -56,16 +56,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // 选择头像
+  // Pick avatar
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      // TODO: 实现头像上传功能
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('头像上传功能待实现')));
+      // TODO: Implement avatar upload functionality
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avatar upload feature coming soon')),
+      );
     }
   }
 
@@ -76,10 +76,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('个人资料'),
+        title: const Text('Profile'),
         actions: [
           if (_isEditing)
-            TextButton(onPressed: _updateProfile, child: const Text('保存'))
+            TextButton(onPressed: _updateProfile, child: const Text('Save'))
           else
             TextButton(
               onPressed: () {
@@ -87,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _isEditing = true;
                 });
               },
-              child: const Text('编辑'),
+              child: const Text('Edit'),
             ),
         ],
       ),
@@ -97,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
-                  // 头像
+                  // Avatar
                   Center(
                     child: GestureDetector(
                       onTap: _isEditing ? _pickAvatar : null,
@@ -139,19 +139,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // 昵称
+                  // Nickname
                   _buildInfoItem(
-                    '昵称',
+                    'Nickname',
                     _isEditing
                         ? TextField(
                           controller: _nameController,
-                          decoration: const InputDecoration(hintText: '输入昵称'),
+                          decoration: const InputDecoration(
+                            hintText: 'Enter nickname',
+                          ),
                         )
                         : Text(user.name, style: const TextStyle(fontSize: 16)),
                   ),
-                  // 在线状态
+                  // Online status
                   _buildInfoItem(
-                    '状态',
+                    'Status',
                     Row(
                       children: [
                         Container(
@@ -164,29 +166,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          user.isOnline ? '在线' : '离线',
+                          user.isOnline ? 'Online' : 'Offline',
                           style: const TextStyle(fontSize: 16),
                         ),
                       ],
                     ),
                   ),
-                  // 最后在线时间
+                  // Last seen time
                   if (!user.isOnline && user.lastSeen != null)
                     _buildInfoItem(
-                      '最后在线',
+                      'Last seen',
                       Text(
                         _formatLastSeen(user.lastSeen!),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   const SizedBox(height: 40),
-                  // 退出登录按钮
+                  // Logout button
                   ElevatedButton(
                     onPressed: _logout,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
-                    child: const Text('退出登录'),
+                    child: const Text('Logout'),
                   ),
                 ],
               ),
@@ -220,13 +222,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final difference = now.difference(lastSeen);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays}天前';
+      return '${difference.inDays} days ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}小时前';
+      return '${difference.inHours} hours ago';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}分钟前';
+      return '${difference.inMinutes} minutes ago';
     } else {
-      return '刚刚';
+      return 'Just now';
     }
   }
 }
